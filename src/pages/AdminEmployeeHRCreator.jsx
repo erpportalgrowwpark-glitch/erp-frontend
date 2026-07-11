@@ -167,32 +167,139 @@ const AdminEmployeeHRCreator = () => {
     }
   };
 
-  // --- STYLING (Professional Typography applied) ---
+  // --- STYLING (Updated for Mobile Responsiveness) ---
   const styles = {
-    container: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif", backgroundColor: '#e9ecef', padding: '2rem' },
-    card: { backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '450px' },
-    tabContainer: { display: 'flex', gap: '10px', marginBottom: '1.5rem' },
+    container: { 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      minHeight: '100vh', 
+      fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif", 
+      backgroundColor: '#e9ecef', 
+      padding: '1rem', // Reduced padding for better mobile edge-to-edge fit
+      boxSizing: 'border-box' 
+    },
+    card: { 
+      backgroundColor: 'white', 
+      padding: '2rem 1.5rem', // Adjusted for mobile
+      borderRadius: '8px', 
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)', 
+      width: '100%', 
+      maxWidth: '450px', // Makes it fluid until it hits 450px max
+      boxSizing: 'border-box' 
+    },
+    tabContainer: { 
+      display: 'flex', 
+      gap: '10px', 
+      marginBottom: '1.5rem', 
+      width: '100%' 
+    },
     tabButton: (isActive) => ({
-      flex: 1, padding: '10px', cursor: 'pointer', border: 'none', borderRadius: '4px', fontWeight: 'bold',
+      flex: 1, 
+      padding: '10px', 
+      cursor: 'pointer', 
+      border: 'none', 
+      borderRadius: '4px', 
+      fontWeight: 'bold',
       backgroundColor: isActive ? '#343a40' : '#dee2e6',
-      color: isActive ? 'white' : '#495057'
+      color: isActive ? 'white' : '#495057',
+      boxSizing: 'border-box'
     }),
-    form: { display: 'flex', flexDirection: 'column', gap: '1rem' },
-    input: { padding: '10px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ced4da', fontFamily: 'inherit' },
-    submitBtn: { padding: '12px', fontSize: '1rem', cursor: 'pointer', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', marginTop: '10px', fontFamily: 'inherit' },
-    backButton: { marginTop: '1.5rem', cursor: 'pointer', color: '#6c757d', textDecoration: 'underline', border: 'none', background: 'none', fontSize: '0.9rem', fontFamily: 'inherit' },
+    form: { 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '1rem', 
+      width: '100%' 
+    },
+    input: { 
+      width: '100%', 
+      padding: '10px', 
+      fontSize: '1rem', 
+      borderRadius: '4px', 
+      border: '1px solid #ced4da', 
+      fontFamily: 'inherit', 
+      boxSizing: 'border-box' 
+    },
+    submitBtn: { 
+      width: '100%', 
+      padding: '12px', 
+      fontSize: '1rem', 
+      cursor: 'pointer', 
+      backgroundColor: '#007bff', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '4px', 
+      fontWeight: 'bold', 
+      marginTop: '10px', 
+      fontFamily: 'inherit', 
+      boxSizing: 'border-box' 
+    },
+    backButton: { 
+      marginTop: '1.5rem', 
+      cursor: 'pointer', 
+      color: '#6c757d', 
+      textDecoration: 'underline', 
+      border: 'none', 
+      background: 'none', 
+      fontSize: '0.9rem', 
+      fontFamily: 'inherit' 
+    },
 
     // Camera & Gallery Styles
-    cameraSection: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '15px', border: '1px solid #ced4da', borderRadius: '4px', backgroundColor: '#f8f9fa', alignItems: 'center' },
-    video: { width: '100%', borderRadius: '8px', backgroundColor: 'black' },
-    actionBtn: { padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontFamily: 'inherit' },
-    gallery: { display: 'flex', gap: '5px', overflowX: 'auto', marginTop: '10px', justifyContent: 'center' },
-    thumbnail: { width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }
+    cameraSection: { 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '10px', 
+      padding: '15px', 
+      border: '1px solid #ced4da', 
+      borderRadius: '4px', 
+      backgroundColor: '#f8f9fa', 
+      alignItems: 'center', 
+      width: '100%', 
+      boxSizing: 'border-box' 
+    },
+    video: { 
+      width: '100%', 
+      maxWidth: '100%', 
+      borderRadius: '8px', 
+      backgroundColor: 'black' 
+    },
+    actionBtn: { 
+      padding: '10px', 
+      backgroundColor: '#28a745', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '4px', 
+      cursor: 'pointer', 
+      fontWeight: 'bold', 
+      width: '100%', 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      fontFamily: 'inherit', 
+      boxSizing: 'border-box' 
+    },
+    gallery: { 
+      display: 'flex', 
+      flexWrap: 'wrap', // Allows wrapping to next line on tiny screens
+      gap: '8px', 
+      marginTop: '10px', 
+      justifyContent: 'center', 
+      width: '100%' 
+    },
+    thumbnail: { 
+      width: '55px', // Slightly reduced for better fit on 5-across wrapping
+      height: '55px', 
+      objectFit: 'cover', 
+      borderRadius: '4px', 
+      border: '1px solid #ccc' 
+    }
   };
 
   return (
     <div style={styles.container}>
-      <h2 style={{ color: '#333' }}>Account Creator</h2>
+      <h2 style={{ color: '#333', textAlign: 'center' }}>Account Creator</h2>
       <div style={styles.card}>
 
         <div style={styles.tabContainer}>
@@ -212,16 +319,18 @@ const AdminEmployeeHRCreator = () => {
           {/* BIOMETRIC UI */}
           {activeTab === 'employee' && (
             <div style={styles.cameraSection}>
-              <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#333' }}>Biometric Reference</label>
+              <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#333', textAlign: 'center' }}>Biometric Reference</label>
 
               {!isCameraOpen && referenceFaceImages.length === 0 && (
-                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                  <button type="button" style={styles.actionBtn} onClick={openCamera}>
-                    Open Camera
-                  </button>
+                <div style={{ display: 'flex', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '120px' }}>
+                    <button type="button" style={styles.actionBtn} onClick={openCamera}>
+                      Open Camera
+                    </button>
+                  </div>
 
                   {/* File Upload Button (Hidden input covering a styled button) */}
-                  <div style={{ position: 'relative', flex: 1 }}>
+                  <div style={{ position: 'relative', flex: 1, minWidth: '120px' }}>
                     <button type="button" style={{ ...styles.actionBtn, backgroundColor: '#6c757d', width: '100%' }}>
                       Upload Photo
                     </button>
@@ -237,7 +346,7 @@ const AdminEmployeeHRCreator = () => {
 
               {isCameraOpen && (
                 <>
-                  <video ref={videoRef} autoPlay muted style={styles.video} />
+                  <video ref={videoRef} autoPlay muted playsInline style={styles.video} />
                   <button type="button" style={styles.actionBtn} onClick={captureBurst} disabled={isCapturing}>
                     {isCapturing ? 'Capturing Variations...' : 'Start Burst Capture (5 Shots)'}
                   </button>
