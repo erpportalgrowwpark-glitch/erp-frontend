@@ -6,7 +6,7 @@ const EmployeeLoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   // Upgraded professional messaging state (No emojis)
   const [message, setMessage] = useState('');
   const [messageColor, setMessageColor] = useState('#ffffff');
@@ -19,11 +19,11 @@ const EmployeeLoginPage = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     setMessage('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/employee-login', {
+      const response = await fetch('https://erp-backend-421d.onrender.com/api/employee-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ const EmployeeLoginPage = () => {
         displayMessage(data.message, 'success');
         localStorage.setItem('token', data.token);
         localStorage.setItem('employee', JSON.stringify(data.employee));
-        
+
         navigate('/employee-dashboard');
       } else {
         displayMessage(data.message, 'error');
@@ -209,39 +209,39 @@ const EmployeeLoginPage = () => {
 
       <div className="landing-wrapper">
         <div className="glass-card">
-          
-          <img 
-            src="/growwpark_logo.jpg" 
-            alt="GrowwPark Logo" 
-            className="brand-logo" 
+
+          <img
+            src="/growwpark_logo.jpg"
+            alt="GrowwPark Logo"
+            className="brand-logo"
           />
 
           <h1>Employee Login</h1>
           <p className="subtitle">Sign in to access your dashboard.</p>
-          
+
           <form className="form-container" onSubmit={handleLogin}>
-            <input 
-              className="glass-input" 
-              type="email" 
-              placeholder="Email address" 
-              required 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+            <input
+              className="glass-input"
+              type="email"
+              placeholder="Email address"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
-            <input 
-              className="glass-input" 
-              type="password" 
-              placeholder="Password" 
-              required 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+            <input
+              className="glass-input"
+              type="password"
+              placeholder="Password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
-            
+
             <button className="btn btn-primary" type="submit">
               Sign In
             </button>
           </form>
-          
+
           {message && (
             <p style={{ marginTop: '1.2rem', fontWeight: 'bold', color: messageColor, fontSize: '0.9rem' }}>
               {message}

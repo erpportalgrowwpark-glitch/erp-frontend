@@ -3,104 +3,104 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const EmployeeDetailedDaysReport = () => {
-  const navigate = useNavigate();
-  const [history, setHistory] = useState([]);
-  const [employee, setEmployee] = useState(null);
-  const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const [history, setHistory] = useState([]);
+    const [employee, setEmployee] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const storedEmployee = localStorage.getItem('employee');
-    if (storedEmployee) {
-      const parsedEmployee = JSON.parse(storedEmployee);
-      setEmployee(parsedEmployee);
-      fetchHistory(parsedEmployee.id);
-    } else {
-      navigate('/employee-login');
-    }
-  }, [navigate]);
+    useEffect(() => {
+        const storedEmployee = localStorage.getItem('employee');
+        if (storedEmployee) {
+            const parsedEmployee = JSON.parse(storedEmployee);
+            setEmployee(parsedEmployee);
+            fetchHistory(parsedEmployee.id);
+        } else {
+            navigate('/employee-login');
+        }
+    }, [navigate]);
 
-  const fetchHistory = async (empId) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/attendance/history/${empId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data);
-      }
-    } catch (error) {
-      console.error("Error fetching history:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchHistory = async (empId) => {
+        try {
+            const res = await fetch(`https://erp-backend-421d.onrender.com/api/attendance/history/${empId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setHistory(data);
+            }
+        } catch (error) {
+            console.error("Error fetching history:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // --- THE LUNCH-BREAK SHIFT LOGIC (Unchanged) ---
-  const evaluateSession = (tapIn, tapOut) => {
-    if (!tapIn || !tapOut) return false; 
+    // --- THE LUNCH-BREAK SHIFT LOGIC (Unchanged) ---
+    const evaluateSession = (tapIn, tapOut) => {
+        if (!tapIn || !tapOut) return false;
 
-    const inDate = new Date(tapIn);
-    const outDate = new Date(tapOut);
+        const inDate = new Date(tapIn);
+        const outDate = new Date(tapOut);
 
-    const inMins = (inDate.getHours() * 60) + inDate.getMinutes();
-    const outMins = (outDate.getHours() * 60) + outDate.getMinutes();
+        const inMins = (inDate.getHours() * 60) + inDate.getMinutes();
+        const outMins = (outDate.getHours() * 60) + outDate.getMinutes();
 
-    const isValidTapIn = inMins <= 575 || (inMins >= 780 && inMins <= 840);
-    const isValidTapOut = (outMins >= 780 && outMins <= 840) || outMins >= 1110;
+        const isValidTapIn = inMins <= 575 || (inMins >= 780 && inMins <= 840);
+        const isValidTapOut = (outMins >= 780 && outMins <= 840) || outMins >= 1110;
 
-    return isValidTapIn && isValidTapOut; 
-  };
+        return isValidTapIn && isValidTapOut;
+    };
 
-  // --- HELPER MATH FUNCTIONS ---
-  const formatTime = (isoString) => {
-    if (!isoString) return 'Missing / In Progress';
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+    // --- HELPER MATH FUNCTIONS ---
+    const formatTime = (isoString) => {
+        if (!isoString) return 'Missing / In Progress';
+        return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  };
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    };
 
-  const getDurationString = (tapIn, tapOut) => {
-    if (!tapIn || !tapOut) return 'In Progress';
-    const diffMs = new Date(tapOut) - new Date(tapIn);
-    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    return `${diffHrs}h ${diffMins}m`;
-  };
+    const getDurationString = (tapIn, tapOut) => {
+        if (!tapIn || !tapOut) return 'In Progress';
+        const diffMs = new Date(tapOut) - new Date(tapIn);
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return `${diffHrs}h ${diffMins}m`;
+    };
 
-  const getDayTotalDuration = (sessions) => {
-    let totalMs = 0;
-    sessions.forEach(session => {
-      if (session.tapInTime && session.tapOutTime) {
-        totalMs += (new Date(session.tapOutTime) - new Date(session.tapInTime));
-      }
-    });
-    const totalHrs = Math.floor(totalMs / (1000 * 60 * 60));
-    const totalMins = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
-    return `${totalHrs}h ${totalMins}m`;
-  };
+    const getDayTotalDuration = (sessions) => {
+        let totalMs = 0;
+        sessions.forEach(session => {
+            if (session.tapInTime && session.tapOutTime) {
+                totalMs += (new Date(session.tapOutTime) - new Date(session.tapInTime));
+            }
+        });
+        const totalHrs = Math.floor(totalMs / (1000 * 60 * 60));
+        const totalMins = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
+        return `${totalHrs}h ${totalMins}m`;
+    };
 
-  // --- DATA GROUPING LOGIC ---
-  const groupedHistory = useMemo(() => {
-    const groups = history.reduce((acc, record) => {
-      if (!acc[record.date]) acc[record.date] = [];
-      acc[record.date].push(record);
-      return acc;
-    }, {});
-    
-    return Object.keys(groups)
-      .sort((a, b) => new Date(b) - new Date(a))
-      .map(date => ({
-        date,
-        sessions: groups[date]
-      }));
-  }, [history]);
+    // --- DATA GROUPING LOGIC ---
+    const groupedHistory = useMemo(() => {
+        const groups = history.reduce((acc, record) => {
+            if (!acc[record.date]) acc[record.date] = [];
+            acc[record.date].push(record);
+            return acc;
+        }, {});
 
-  if (loading) return <div style={{ padding: '2rem', color: '#c9d1d9', backgroundColor: '#0d1117', height: '100vh' }}>Loading Report...</div>;
+        return Object.keys(groups)
+            .sort((a, b) => new Date(b) - new Date(a))
+            .map(date => ({
+                date,
+                sessions: groups[date]
+            }));
+    }, [history]);
 
-  return (
-    <>
-      <style>
-        {`
+    if (loading) return <div style={{ padding: '2rem', color: '#c9d1d9', backgroundColor: '#0d1117', height: '100vh' }}>Loading Report...</div>;
+
+    return (
+        <>
+            <style>
+                {`
           body, html {
             margin: 0 !important;
             padding: 0 !important;
@@ -300,77 +300,77 @@ const EmployeeDetailedDaysReport = () => {
             }
           }
         `}
-      </style>
+            </style>
 
-      <div className="page-wrapper">
-        <div className="content-container">
-          
-          {/* Header Card */}
-          <div className="glass-card header-row">
-            <div>
-              <h2>Detailed Days Report</h2>
-              <p>Attendance history & log variations for {employee?.name}</p>
-            </div>
-            <button className="btn-secondary" onClick={() => navigate('/employee-dashboard')}>
-              ← Back to Dashboard
-            </button>
-          </div>
+            <div className="page-wrapper">
+                <div className="content-container">
 
-          {/* Data Rendering */}
-          {groupedHistory.length === 0 ? (
-            <div className="glass-card" style={{ textAlign: 'center' }}>
-              <p style={{ color: '#8b949e', fontSize: '1.1rem', margin: 0 }}>No attendance records found in the system.</p>
-            </div>
-          ) : (
-            groupedHistory.map((dayGroup) => (
-              
-              // Big Day Container
-              <div key={dayGroup.date} className="glass-card">
-                
-                <div className="day-header">
-                  <h3 className="day-title">{formatDate(dayGroup.date)}</h3>
-                  <p className="day-total">
-                    Total Hours: <span className="highlight-blue">{getDayTotalDuration(dayGroup.sessions)}</span>
-                    &nbsp;&nbsp;|&nbsp;&nbsp; Taps: {dayGroup.sessions.length}
-                  </p>
+                    {/* Header Card */}
+                    <div className="glass-card header-row">
+                        <div>
+                            <h2>Detailed Days Report</h2>
+                            <p>Attendance history & log variations for {employee?.name}</p>
+                        </div>
+                        <button className="btn-secondary" onClick={() => navigate('/employee-dashboard')}>
+                            ← Back to Dashboard
+                        </button>
+                    </div>
+
+                    {/* Data Rendering */}
+                    {groupedHistory.length === 0 ? (
+                        <div className="glass-card" style={{ textAlign: 'center' }}>
+                            <p style={{ color: '#8b949e', fontSize: '1.1rem', margin: 0 }}>No attendance records found in the system.</p>
+                        </div>
+                    ) : (
+                        groupedHistory.map((dayGroup) => (
+
+                            // Big Day Container
+                            <div key={dayGroup.date} className="glass-card">
+
+                                <div className="day-header">
+                                    <h3 className="day-title">{formatDate(dayGroup.date)}</h3>
+                                    <p className="day-total">
+                                        Total Hours: <span className="highlight-blue">{getDayTotalDuration(dayGroup.sessions)}</span>
+                                        &nbsp;&nbsp;|&nbsp;&nbsp; Taps: {dayGroup.sessions.length}
+                                    </p>
+                                </div>
+
+                                <ul className="session-list">
+                                    {dayGroup.sessions.map((session) => {
+                                        const isGoodSession = evaluateSession(session.tapInTime, session.tapOutTime);
+
+                                        return (
+                                            <li key={session._id} className={`session-card ${isGoodSession ? 'session-good' : 'session-bad'}`}>
+
+                                                <div className="time-data">
+                                                    <p className="time-text">
+                                                        <strong>Tap In:</strong> {formatTime(session.tapInTime)}
+                                                        &nbsp;&nbsp;➔&nbsp;&nbsp;
+                                                        <strong>Tap Out:</strong> {formatTime(session.tapOutTime)}
+                                                    </p>
+                                                    <p className="duration-text">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                                        Session Duration: {getDurationString(session.tapInTime, session.tapOutTime)}
+                                                    </p>
+                                                </div>
+
+                                                <div className={`badge ${isGoodSession ? 'badge-good' : 'badge-bad'}`}>
+                                                    {isGoodSession ? 'Shift Rules Met' : 'Shift Rules Missed'}
+                                                </div>
+
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+
+                            </div>
+                        ))
+                    )}
+
                 </div>
-
-                <ul className="session-list">
-                  {dayGroup.sessions.map((session) => {
-                    const isGoodSession = evaluateSession(session.tapInTime, session.tapOutTime);
-
-                    return (
-                      <li key={session._id} className={`session-card ${isGoodSession ? 'session-good' : 'session-bad'}`}>
-                        
-                        <div className="time-data">
-                          <p className="time-text">
-                            <strong>Tap In:</strong> {formatTime(session.tapInTime)}
-                            &nbsp;&nbsp;➔&nbsp;&nbsp;
-                            <strong>Tap Out:</strong> {formatTime(session.tapOutTime)}
-                          </p>
-                          <p className="duration-text">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                            Session Duration: {getDurationString(session.tapInTime, session.tapOutTime)}
-                          </p>
-                        </div>
-                        
-                        <div className={`badge ${isGoodSession ? 'badge-good' : 'badge-bad'}`}>
-                          {isGoodSession ? 'Shift Rules Met' : 'Shift Rules Missed'}
-                        </div>
-
-                      </li>
-                    );
-                  })}
-                </ul>
-
-              </div>
-            ))
-          )}
-
-        </div>
-      </div>
-    </>
-  );
+            </div>
+        </>
+    );
 };
 
 export default EmployeeDetailedDaysReport;

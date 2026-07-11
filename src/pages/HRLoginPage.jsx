@@ -13,7 +13,7 @@ const HRLoginPage = () => {
     setMessage('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/hr-login', {
+      const response = await fetch('https://erp-backend-421d.onrender.com/api/hr-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,7 +27,7 @@ const HRLoginPage = () => {
         setMessage('✅ ' + data.message);
         localStorage.setItem('hr_token', data.token);
         localStorage.setItem('hr_user', JSON.stringify(data.user));
-        
+
         // Future step: navigate('/hr-dashboard')
       } else {
         setMessage('❌ ' + data.message);
@@ -49,17 +49,17 @@ const HRLoginPage = () => {
     <div style={styles.container}>
       <h2>HR Portal Login</h2>
       <form style={styles.form} onSubmit={handleLogin}>
-        <input 
-          style={styles.input} type="email" placeholder="HR Email" required 
-          value={email} onChange={(e) => setEmail(e.target.value)} 
+        <input
+          style={styles.input} type="email" placeholder="HR Email" required
+          value={email} onChange={(e) => setEmail(e.target.value)}
         />
-        <input 
-          style={styles.input} type="password" placeholder="Password" required 
-          value={password} onChange={(e) => setPassword(e.target.value)} 
+        <input
+          style={styles.input} type="password" placeholder="Password" required
+          value={password} onChange={(e) => setPassword(e.target.value)}
         />
         <button style={styles.button} type="submit">Access System</button>
       </form>
-      
+
       {message && <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>{message}</p>}
 
       <button style={styles.backButton} onClick={() => navigate('/')}>

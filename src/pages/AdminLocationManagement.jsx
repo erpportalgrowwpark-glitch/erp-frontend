@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router-dom';
 
 const AdminLocationManagement = () => {
   const navigate = useNavigate();
-  
+
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [allowedRadius, setAllowedRadius] = useState(50); // Default 50 meters
-  
+
   const [message, setMessage] = useState('');
   const [messageColor, setMessageColor] = useState('#333');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +24,7 @@ const AdminLocationManagement = () => {
   useEffect(() => {
     const fetchCurrentLocation = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/location/get-location');
+        const response = await fetch('https://erp-backend-421d.onrender.com/api/location/get-location');
         if (response.ok) {
           const data = await response.json();
           setLatitude(data.officeLocation.latitude);
@@ -41,7 +41,7 @@ const AdminLocationManagement = () => {
   // Use Browser API to get exact GPS coordinates
   const handleCheckLocation = () => {
     setMessage('');
-    
+
     if (!navigator.geolocation) {
       displayMessage('Geolocation is not supported by your browser.', 'error');
       return;
@@ -69,20 +69,20 @@ const AdminLocationManagement = () => {
   const handleSaveLocation = async (e) => {
     e.preventDefault();
     setMessage('');
-    
+
     if (!latitude || !longitude) {
       displayMessage('Please acquire coordinates before saving.', 'error');
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/location/set-location', {
+      const response = await fetch('https://erp-backend-421d.onrender.com/api/location/set-location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          latitude: parseFloat(latitude), 
-          longitude: parseFloat(longitude), 
-          allowedRadius: parseInt(allowedRadius) 
+        body: JSON.stringify({
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+          allowedRadius: parseInt(allowedRadius)
         }),
       });
 
@@ -117,9 +117,9 @@ const AdminLocationManagement = () => {
       <div style={styles.card}>
         <h2 style={styles.title}>Office Location Manager</h2>
         <p style={styles.text}>Configure the geographical boundaries for employee Tap In. Employees must be within the allowed radius of this location.</p>
-        
+
         <form style={styles.form} onSubmit={handleSaveLocation}>
-          
+
           <button type="button" style={styles.gpsBtn} onClick={handleCheckLocation} disabled={isLoading}>
             {isLoading ? 'Acquiring...' : 'Check & Fix Current Location'}
           </button>
@@ -136,13 +136,13 @@ const AdminLocationManagement = () => {
 
           <div style={styles.inputGroup}>
             <label style={styles.label}>Allowed Radius (Meters)</label>
-            <input 
-              style={{...styles.input, backgroundColor: 'white'}} 
-              type="number" 
-              value={allowedRadius} 
-              onChange={(e) => setAllowedRadius(e.target.value)} 
-              min="10" 
-              required 
+            <input
+              style={{ ...styles.input, backgroundColor: 'white' }}
+              type="number"
+              value={allowedRadius}
+              onChange={(e) => setAllowedRadius(e.target.value)}
+              min="10"
+              required
             />
           </div>
 

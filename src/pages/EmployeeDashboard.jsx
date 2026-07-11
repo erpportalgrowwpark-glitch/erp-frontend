@@ -6,13 +6,13 @@ import * as faceapi from 'face-api.js';
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
-  
+
   const [message, setMessage] = useState('');
   const [messageColor, setMessageColor] = useState('#ffffff');
-  
-  const [isTappedIn, setIsTappedIn] = useState(false); 
+
+  const [isTappedIn, setIsTappedIn] = useState(false);
   const [metrics, setMetrics] = useState({ today: '0h 0m', week: '0h 0m', month: '0h 0m', logs: [], chartData: [] });
-  
+
   // Chart Toggle State
   const [chartView, setChartView] = useState('weekly');
 
@@ -20,16 +20,16 @@ const EmployeeDashboard = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  
+
   const [pendingAction, setPendingAction] = useState(null);
 
   const getTodayString = () => new Date().toISOString().split('T')[0];
 
   const displayMessage = (text, type = 'info') => {
     setMessage(text);
-    if (type === 'success') setMessageColor('#3fb950'); 
-    else if (type === 'error') setMessageColor('#f85149'); 
-    else setMessageColor('#58a6ff'); 
+    if (type === 'success') setMessageColor('#3fb950');
+    else if (type === 'error') setMessageColor('#f85149');
+    else setMessageColor('#58a6ff');
   };
 
   useEffect(() => {
@@ -60,12 +60,12 @@ const EmployeeDashboard = () => {
   const fetchDashboardData = async (empId) => {
     const date = getTodayString();
     try {
-      const statusRes = await fetch(`http://localhost:5000/api/attendance/status/${empId}?date=${date}`);
+      const statusRes = await fetch(`https://erp-backend-421d.onrender.com/api/attendance/status/${empId}?date=${date}`);
       if (statusRes.ok) {
         const statusData = await statusRes.json();
         setIsTappedIn(statusData.isTappedIn);
       }
-      const metricsRes = await fetch(`http://localhost:5000/api/attendance/metrics/${empId}?date=${date}`);
+      const metricsRes = await fetch(`https://erp-backend-421d.onrender.com/api/attendance/metrics/${empId}?date=${date}`);
       if (metricsRes.ok) {
         const metricsData = await metricsRes.json();
         setMetrics({
@@ -84,7 +84,7 @@ const EmployeeDashboard = () => {
     const endpoint = action === 'in' ? '/api/attendance/tap-in' : '/api/attendance/tap-out';
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`https://erp-backend-421d.onrender.com${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ employeeId: employee.id, date: getTodayString() }),
@@ -93,7 +93,7 @@ const EmployeeDashboard = () => {
       const data = await response.json();
       if (response.ok) {
         displayMessage(data.message, 'success');
-        fetchDashboardData(employee.id); 
+        fetchDashboardData(employee.id);
       } else {
         displayMessage(`Error: ${data.message}`, 'error');
       }
@@ -101,7 +101,7 @@ const EmployeeDashboard = () => {
       displayMessage('Server error. Could not connect to backend.', 'error');
     }
   };
-  
+
   const initiateTapAction = async (action) => {
     if (!modelsLoaded) {
       displayMessage('AI Models are still loading, please wait a moment...', 'info');
@@ -135,13 +135,13 @@ const EmployeeDashboard = () => {
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; 
+    const R = 6371e3;
     const toRad = (value) => (value * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; 
+    return R * c;
   };
 
   const getEmployeeLocation = () => {
@@ -159,9 +159,9 @@ const EmployeeDashboard = () => {
     displayMessage('Loading secure vault data...', 'info');
 
     try {
-      const res = await fetch(`http://localhost:5000/api/employee-login/profile/${employee.id}`);
+      const res = await fetch(`https://erp-backend-421d.onrender.com/api/employee-login/profile/${employee.id}`);
       const data = await res.json();
-      
+
       if (!data.referenceFaceImages || data.referenceFaceImages.length === 0) {
         displayMessage('No reference face registered. Contact Admin.', 'error');
         closeCamera();
@@ -193,7 +193,7 @@ const EmployeeDashboard = () => {
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         displayMessage(`Scanning live feed... (Attempt ${attempt}/${maxAttempts})`, 'info');
-        
+
         const liveDetections = await faceapi.detectAllFaces(videoRef.current, detectorOptions).withFaceLandmarks().withFaceDescriptors();
 
         if (liveDetections && liveDetections.length > 0) {
@@ -201,11 +201,11 @@ const EmployeeDashboard = () => {
             for (let refDesc of refDescriptors) {
               const distance = faceapi.euclideanDistance(refDesc, liveDet.descriptor);
               const similarityPercentage = Math.max(0, Math.round(100 - (distance * 100)));
-              
+
               if (similarityPercentage > highestMatch) highestMatch = similarityPercentage;
               if (similarityPercentage >= 60) {
                 isVerified = true;
-                break; 
+                break;
               }
             }
             if (isVerified) break;
@@ -218,7 +218,7 @@ const EmployeeDashboard = () => {
       if (!isVerified) {
         displayMessage(`Access Denied. Match: ${highestMatch}%`, 'error');
         setIsVerifying(false);
-        return; 
+        return;
       }
 
       if (pendingAction === 'out') {
@@ -227,9 +227,9 @@ const EmployeeDashboard = () => {
 
       } else if (pendingAction === 'in') {
         displayMessage(`Identity Verified! Verifying GPS Location...`, 'info');
-        
+
         try {
-          const locRes = await fetch('http://localhost:5000/api/location/get-location');
+          const locRes = await fetch('https://erp-backend-421d.onrender.com/api/location/get-location');
           if (!locRes.ok) throw new Error("Office location not configured");
           const locData = await locRes.json();
           const office = locData.officeLocation;
@@ -249,7 +249,7 @@ const EmployeeDashboard = () => {
           setIsVerifying(false);
         }
       }
-      
+
     } catch (error) {
       displayMessage('Unexpected error. Please try again.', 'error');
       closeCamera();
@@ -277,13 +277,13 @@ const EmployeeDashboard = () => {
   const getChartData = () => {
     if (!metrics.chartData || metrics.chartData.length === 0) return [];
     if (chartView === 'weekly') {
-      return metrics.chartData.slice(-7); 
+      return metrics.chartData.slice(-7);
     }
-    return metrics.chartData; 
+    return metrics.chartData;
   };
 
   const activeChartData = getChartData();
-  const maxMs = 36000000; 
+  const maxMs = 36000000;
 
   if (!employee) return <div>Loading Profile...</div>;
 
@@ -416,7 +416,7 @@ const EmployeeDashboard = () => {
       </style>
 
       <div className="layout">
-        
+
         {/* SIDEBAR (Bottom Nav on Mobile) */}
         <div className="sidebar">
           <div className="side-top">
@@ -481,11 +481,11 @@ const EmployeeDashboard = () => {
                   const safeDelayMs = data.delayMs || 0;
                   const workPercent = Math.min((safeWorkMs / maxMs) * 100, 100);
                   const delayPercent = Math.min((safeDelayMs / maxMs) * 100, 100);
-                  
+
                   return (
                     // Tooltip preserved for Desktop hoverers
                     <div className="chart-bar-group" key={idx} title={`Worked: ${msToFormat(safeWorkMs)} | Delayed: ${msToFormat(safeDelayMs)}`}>
-                      
+
                       <div className="chart-bars">
                         <div className="bar-work" style={{ height: `${Math.max(1, workPercent)}%` }}></div>
                         {safeDelayMs > 0 && <div className="bar-delay" style={{ height: `${Math.max(1, delayPercent)}%` }}></div>}
@@ -494,15 +494,15 @@ const EmployeeDashboard = () => {
                       {/* NEW: The visible meter printing the exact hours/minutes beneath every bar */}
                       <span className="chart-value">{msToFormat(safeWorkMs)}</span>
                       <span className="chart-label">{data.date.split('-')[2]}</span>
-                      
+
                     </div>
                   );
                 })
               )}
             </div>
             <div style={{ display: 'flex', gap: '15px', marginTop: '15px', justifyContent: 'center', fontSize: '0.8rem', color: '#8b949e' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{width:'10px', height:'10px', background:'#0052CC', borderRadius:'2px'}}></div> Hours Worked</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{width:'10px', height:'10px', background:'#f85149', borderRadius:'2px'}}></div> Arrival Delayed</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#0052CC', borderRadius: '2px' }}></div> Hours Worked</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '10px', height: '10px', background: '#f85149', borderRadius: '2px' }}></div> Arrival Delayed</span>
             </div>
           </div>
 
@@ -541,7 +541,7 @@ const EmployeeDashboard = () => {
             )}
           </div>
           <video ref={videoRef} autoPlay muted className="modal-video" />
-          
+
           <div className="modal-actions">
             <button style={{ marginTop: '20px', padding: '12px 30px', fontSize: '1.1rem', backgroundColor: '#3fb950', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }} onClick={verifyFace} disabled={isVerifying}>
               {isVerifying ? 'Verifying Data...' : 'Start Scan'}
