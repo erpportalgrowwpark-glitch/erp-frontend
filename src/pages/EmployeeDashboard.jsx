@@ -21,7 +21,7 @@ const EmployeeDashboard = () => {
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   
-  // NEW: State to hold the pre-calculated face data
+  // State to hold the pre-calculated face data
   const [referenceDescriptors, setReferenceDescriptors] = useState([]);
   const [isBiometricsReady, setIsBiometricsReady] = useState(false);
 
@@ -71,7 +71,7 @@ const EmployeeDashboard = () => {
     loadModelsAndPrecompute();
   }, [navigate]);
 
-  // NEW: Background function to fetch and calculate DB images on login
+  // Background function to fetch and calculate DB images on login
   const preloadBiometrics = async (empId) => {
     try {
       const res = await fetch(`https://erp-backend-421d.onrender.com/api/employee-login/profile/${empId}`);
@@ -79,7 +79,7 @@ const EmployeeDashboard = () => {
 
       if (!data.referenceFaceImages || data.referenceFaceImages.length === 0) {
         console.warn("No reference images found in DB.");
-        setIsBiometricsReady(true); // Set to true so UI doesn't hang, it will just fail at scan
+        setIsBiometricsReady(true); 
         return;
       }
 
@@ -88,12 +88,12 @@ const EmployeeDashboard = () => {
 
       for (let i = 0; i < data.referenceFaceImages.length; i++) {
         const refImg = new Image();
-        refImg.crossOrigin = 'anonymous'; // Crucial for Canvas CORS policy
+        refImg.crossOrigin = 'anonymous'; 
         refImg.src = data.referenceFaceImages[i];
         
         await new Promise((resolve) => { 
           refImg.onload = resolve;
-          refImg.onerror = resolve; // Resolve on error so the loop doesn't get stuck forever
+          refImg.onerror = resolve; 
         });
 
         const refDetection = await faceapi.detectSingleFace(refImg, detectorOptions)
@@ -159,17 +159,8 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // REMOVED THE BLOCKING CHECKS HERE - OPENS INSTANTLY NOW
   const initiateTapAction = async (action) => {
-    if (!modelsLoaded) {
-      displayMessage('AI Models are still loading, please wait a moment...', 'info');
-      return;
-    }
-    // Check if background calculation is done
-    if (!isBiometricsReady) {
-      displayMessage('Securing Biometric Vault... Setting up your profile. Please click Tap In again in a few seconds.', 'info');
-      return;
-    }
-    
     setMessage('');
     setPendingAction(action);
     setIsCameraOpen(true);
@@ -220,7 +211,6 @@ const EmployeeDashboard = () => {
   const verifyFace = async () => {
     setIsVerifying(true);
 
-    // Skip the DB fetch entirely. Just check if the pre-loaded data is there.
     if (referenceDescriptors.length === 0) {
       displayMessage('No reference face registered. Contact Admin.', 'error');
       closeCamera();
@@ -243,7 +233,6 @@ const EmployeeDashboard = () => {
 
         if (liveDetections && liveDetections.length > 0) {
           for (let liveDet of liveDetections) {
-            // Compare instantly against the background-loaded data
             for (let refDesc of referenceDescriptors) {
               const distance = faceapi.euclideanDistance(refDesc, liveDet.descriptor);
               const similarityPercentage = Math.max(0, Math.round(100 - (distance * 100)));
@@ -332,6 +321,18 @@ const EmployeeDashboard = () => {
   const maxMs = 36000000;
 
   if (!employee) return <div>Loading Profile...</div>;
+
+  // DYNAMIC BUTTON LOGIC
+  let scanButtonText = 'Start Scan';
+  let isScanDisabled = isVerifying || !modelsLoaded || !isBiometricsReady;
+
+  if (!modelsLoaded) {
+    scanButtonText = 'Loading AI Engine...';
+  } else if (!isBiometricsReady) {
+    scanButtonText = 'Securing Biometric Vault...';
+  } else if (isVerifying) {
+    scanButtonText = 'Verifying Data...';
+  }
 
   return (
     <>
@@ -527,13 +528,24 @@ const EmployeeDashboard = () => {
           <video ref={videoRef} autoPlay muted className="modal-video" />
 
           <div className="modal-actions">
-            {/* The Start Scan Button is Back! */}
+            {/* The Start Scan button now shows loading states dynamically */}
             <button 
-              style={{ marginTop: '20px', padding: '12px 30px', fontSize: '1.1rem', backgroundColor: '#3fb950', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }} 
+              style={{ 
+                marginTop: '20px', 
+                padding: '12px 30px', 
+                fontSize: '1.1rem', 
+                backgroundColor: isScanDisabled ? '#8b949e' : '#3fb950', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: isScanDisabled ? 'not-allowed' : 'pointer', 
+                fontWeight: 'bold',
+                transition: 'background-color 0.3s'
+              }} 
               onClick={verifyFace} 
-              disabled={isVerifying}
+              disabled={isScanDisabled}
             >
-              {isVerifying ? 'Verifying Data...' : 'Start Scan'}
+              {scanButtonText}
             </button>
             <button style={{ color: '#8b949e', background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer', textDecoration: 'underline' }} onClick={closeCamera}>Cancel</button>
           </div>
