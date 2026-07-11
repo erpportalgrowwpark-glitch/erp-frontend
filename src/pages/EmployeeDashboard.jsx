@@ -20,6 +20,10 @@ const EmployeeDashboard = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  
+  // NEW: State to hold the pre-calculated face data
+  const [referenceDescriptors, setReferenceDescriptors] = useState([]);
+  const [isBiometricsReady, setIsBiometricsReady] = useState(false);
 
   const [pendingAction, setPendingAction] = useState(null);
 
@@ -34,28 +38,81 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     const storedEmployee = localStorage.getItem('employee');
+    let parsedEmployee = null;
+
     if (storedEmployee) {
-      const parsedEmployee = JSON.parse(storedEmployee);
+      parsedEmployee = JSON.parse(storedEmployee);
       setEmployee(parsedEmployee);
       fetchDashboardData(parsedEmployee.id);
     } else {
       navigate('/employee-login');
+      return;
     }
 
-    const loadModels = async () => {
+    const loadModelsAndPrecompute = async () => {
       try {
+        // 1. Load the AI Models first
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
           faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
           faceapi.nets.faceRecognitionNet.loadFromUri('/models')
         ]);
         setModelsLoaded(true);
+
+        // 2. Start pre-computing the face vault in the background instantly
+        if (parsedEmployee) {
+          preloadBiometrics(parsedEmployee.id);
+        }
       } catch (err) {
         console.error("Failed to load AI Models", err);
       }
     };
-    loadModels();
+    
+    loadModelsAndPrecompute();
   }, [navigate]);
+
+  // NEW: Background function to fetch and calculate DB images on login
+  const preloadBiometrics = async (empId) => {
+    try {
+      const res = await fetch(`https://erp-backend-421d.onrender.com/api/employee-login/profile/${empId}`);
+      const data = await res.json();
+
+      if (!data.referenceFaceImages || data.referenceFaceImages.length === 0) {
+        console.warn("No reference images found in DB.");
+        setIsBiometricsReady(true); // Set to true so UI doesn't hang, it will just fail at scan
+        return;
+      }
+
+      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 });
+      const descriptors = [];
+
+      for (let i = 0; i < data.referenceFaceImages.length; i++) {
+        const refImg = new Image();
+        refImg.crossOrigin = 'anonymous'; // Crucial for Canvas CORS policy
+        refImg.src = data.referenceFaceImages[i];
+        
+        await new Promise((resolve) => { 
+          refImg.onload = resolve;
+          refImg.onerror = resolve; // Resolve on error so the loop doesn't get stuck forever
+        });
+
+        const refDetection = await faceapi.detectSingleFace(refImg, detectorOptions)
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+          
+        if (refDetection) {
+          descriptors.push(refDetection.descriptor);
+        }
+      }
+
+      setReferenceDescriptors(descriptors);
+      setIsBiometricsReady(true);
+      console.log("✅ Biometric vault pre-loaded in the background.");
+    } catch (error) {
+      console.error("Error pre-loading biometrics:", error);
+      setIsBiometricsReady(true);
+    }
+  };
 
   const fetchDashboardData = async (empId) => {
     const date = getTodayString();
@@ -107,6 +164,12 @@ const EmployeeDashboard = () => {
       displayMessage('AI Models are still loading, please wait a moment...', 'info');
       return;
     }
+    // Check if background calculation is done
+    if (!isBiometricsReady) {
+      displayMessage('Securing Biometric Vault... Setting up your profile. Please click Tap In again in a few seconds.', 'info');
+      return;
+    }
+    
     setMessage('');
     setPendingAction(action);
     setIsCameraOpen(true);
@@ -156,37 +219,17 @@ const EmployeeDashboard = () => {
 
   const verifyFace = async () => {
     setIsVerifying(true);
-    displayMessage('Loading secure vault data...', 'info');
+
+    // Skip the DB fetch entirely. Just check if the pre-loaded data is there.
+    if (referenceDescriptors.length === 0) {
+      displayMessage('No reference face registered. Contact Admin.', 'error');
+      closeCamera();
+      return;
+    }
+
+    const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 });
 
     try {
-      const res = await fetch(`https://erp-backend-421d.onrender.com/api/employee-login/profile/${employee.id}`);
-      const data = await res.json();
-
-      if (!data.referenceFaceImages || data.referenceFaceImages.length === 0) {
-        displayMessage('No reference face registered. Contact Admin.', 'error');
-        closeCamera();
-        return;
-      }
-
-      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 });
-
-      displayMessage('Preparing AI Matcher...', 'info');
-      const refDescriptors = [];
-      for (let i = 0; i < data.referenceFaceImages.length; i++) {
-        const refImg = new Image();
-        refImg.src = data.referenceFaceImages[i];
-        await new Promise((resolve) => { refImg.onload = resolve; });
-
-        const refDetection = await faceapi.detectSingleFace(refImg, detectorOptions).withFaceLandmarks().withFaceDescriptor();
-        if (refDetection) refDescriptors.push(refDetection.descriptor);
-      }
-
-      if (refDescriptors.length === 0) {
-        displayMessage('System error: Could not extract face data.', 'error');
-        closeCamera();
-        return;
-      }
-
       let highestMatch = 0;
       let isVerified = false;
       const maxAttempts = 10;
@@ -194,11 +237,14 @@ const EmployeeDashboard = () => {
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         displayMessage(`Scanning live feed... (Attempt ${attempt}/${maxAttempts})`, 'info');
 
-        const liveDetections = await faceapi.detectAllFaces(videoRef.current, detectorOptions).withFaceLandmarks().withFaceDescriptors();
+        const liveDetections = await faceapi.detectAllFaces(videoRef.current, detectorOptions)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
 
         if (liveDetections && liveDetections.length > 0) {
           for (let liveDet of liveDetections) {
-            for (let refDesc of refDescriptors) {
+            // Compare instantly against the background-loaded data
+            for (let refDesc of referenceDescriptors) {
               const distance = faceapi.euclideanDistance(refDesc, liveDet.descriptor);
               const similarityPercentage = Math.max(0, Math.round(100 - (distance * 100)));
 
@@ -291,53 +337,15 @@ const EmployeeDashboard = () => {
     <>
       <style>
         {`
-          body, html { 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            width: 100%; 
-            height: 100%; 
-            background-color: #0d1117; 
-          }
+          body, html { margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; background-color: #0d1117; }
+          .layout { display: flex; height: 100vh; height: 100dvh; width: 100vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background-color: #0d1117; color: #c9d1d9; overflow: hidden; }
           
-          .layout { 
-            display: flex; 
-            height: 100vh; 
-            height: 100dvh; 
-            width: 100vw; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; 
-            background-color: #0d1117; 
-            color: #c9d1d9; 
-            overflow: hidden; 
-          }
-          
-          /* SIDEBAR (Desktop) */
-          .sidebar { 
-            width: 70px; 
-            background: rgba(22, 27, 34, 0.6); 
-            border-right: 1px solid rgba(255, 255, 255, 0.08); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: space-between; 
-            padding: 1.5rem 0; 
-            box-sizing: border-box; 
-            backdrop-filter: blur(10px); 
-            z-index: 50; 
-          }
+          .sidebar { width: 70px; background: rgba(22, 27, 34, 0.6); border-right: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 1.5rem 0; box-sizing: border-box; backdrop-filter: blur(10px); z-index: 50; }
           .side-btn { background: none; border: none; color: #8b949e; cursor: pointer; padding: 10px; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
           .side-btn:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
           .side-btn.active { color: #58a6ff; background: rgba(88, 166, 255, 0.1); }
 
-          /* MAIN CONTENT */
-          .main-content { 
-            flex: 1; 
-            padding: 2rem; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 1.5rem; 
-            box-sizing: border-box;
-          }
+          .main-content { flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; box-sizing: border-box; }
           .glass-card { background: rgba(22, 27, 34, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); }
 
           .header-row { display: flex; justify-content: space-between; align-items: center; }
@@ -352,28 +360,20 @@ const EmployeeDashboard = () => {
           .metric-card h4 { color: #8b949e; margin: 0 0 10px 0; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
           .metric-card .value { font-size: 2rem; font-weight: bold; color: #58a6ff; margin: 0; }
 
-          /* CHARTS */
           .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
           .chart-header h3 { margin: 0; color: #ffffff; }
           .toggle-group { display: flex; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 4px; position: relative; z-index: 20; }
           .toggle-btn { background: none; border: none; color: #8b949e; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; touch-action: manipulation; }
           .toggle-btn.active { background: #0052CC; color: white; box-shadow: 0 2px 8px rgba(0, 82, 204, 0.4); }
 
-          /* INCREASED HEIGHT TO MAKE ROOM FOR TEXT */
           .chart-area { display: flex; align-items: flex-end; gap: 12px; height: 230px; padding-top: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); overflow-x: auto; position: relative; z-index: 10; }
-          
-          /* ADDED MIN-WIDTH SO THE "6H 30M" TEXT DOESNT OVERLAP */
           .chart-bar-group { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; flex: 1; min-width: 55px; position: relative; }
           .chart-bars { display: flex; align-items: flex-end; gap: 4px; width: 100%; height: 160px; justify-content: center; }
-          
           .bar-work { width: 22px; background-color: #0052CC; border-radius: 4px 4px 0 0; transition: height 0.4s ease; min-height: 4px; }
           .bar-delay { width: 14px; background-color: #f85149; border-radius: 4px 4px 0 0; transition: height 0.4s ease; min-height: 4px; }
-          
-          /* THE NEW VISIBLE TEXT METER */
           .chart-value { margin-top: 8px; font-size: 0.7rem; font-weight: 600; color: #e6edf3; white-space: nowrap; }
           .chart-label { margin-top: 4px; font-size: 0.75rem; color: #8b949e; }
 
-          /* LOGS */
           .logs-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1rem; }
           .logs-header h3 { margin: 0; color: #ffffff; }
           .btn-report { padding: 8px 16px; background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
@@ -382,33 +382,26 @@ const EmployeeDashboard = () => {
           .log-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
           .log-item span strong { color: #8b949e; }
 
-          /* MODAL */
           .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(13, 17, 23, 0.85); backdrop-filter: blur(8px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
           .modal-video { width: 400px; height: 300px; background-color: black; border-radius: 12px; object-fit: cover; border: 2px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
           .modal-actions { display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%; max-width: 400px; padding: 0 20px; box-sizing: border-box; }
 
-          /* MOBILE RESPONSIVENESS (< 768px) */
           @media (max-width: 768px) {
             .layout { flex-direction: column; }
             .sidebar { width: 100%; height: 70px; flex-direction: row; border-right: none; border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 0 2rem; order: 2; }
             .main-content { padding: 1rem; gap: 1.2rem; order: 1; }
             .glass-card { padding: 1.2rem; }
-            
             .header-row { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
             .header-actions { width: 100%; text-align: center; }
             .btn-tap { width: 100%; padding: 16px; }
-            
             .metrics-grid { grid-template-columns: 1fr 1fr; }
             .metric-card:last-child { grid-column: span 2; }
-            
             .chart-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
             .toggle-group { width: 100%; justify-content: center; }
             .toggle-btn { flex: 1; padding: 10px; }
-            
             .logs-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
             .btn-report { width: 100%; text-align: center; padding: 12px; }
             .log-item { flex-direction: column; gap: 5px; }
-            
             .modal-video { width: 90vw; height: auto; aspect-ratio: 4/3; }
             .modal-actions button { width: 100%; }
           }
@@ -416,8 +409,6 @@ const EmployeeDashboard = () => {
       </style>
 
       <div className="layout">
-
-        {/* SIDEBAR (Bottom Nav on Mobile) */}
         <div className="sidebar">
           <div className="side-top">
             <button className="side-btn active" title="Dashboard">
@@ -462,7 +453,6 @@ const EmployeeDashboard = () => {
             </div>
           </div>
 
-          {/* CUSTOM CSS CHART COMPONENT */}
           <div className="glass-card">
             <div className="chart-header">
               <h3>Attendance Analytics</h3>
@@ -483,18 +473,13 @@ const EmployeeDashboard = () => {
                   const delayPercent = Math.min((safeDelayMs / maxMs) * 100, 100);
 
                   return (
-                    // Tooltip preserved for Desktop hoverers
                     <div className="chart-bar-group" key={idx} title={`Worked: ${msToFormat(safeWorkMs)} | Delayed: ${msToFormat(safeDelayMs)}`}>
-
                       <div className="chart-bars">
                         <div className="bar-work" style={{ height: `${Math.max(1, workPercent)}%` }}></div>
                         {safeDelayMs > 0 && <div className="bar-delay" style={{ height: `${Math.max(1, delayPercent)}%` }}></div>}
                       </div>
-
-                      {/* NEW: The visible meter printing the exact hours/minutes beneath every bar */}
                       <span className="chart-value">{msToFormat(safeWorkMs)}</span>
                       <span className="chart-label">{data.date.split('-')[2]}</span>
-
                     </div>
                   );
                 })
@@ -529,7 +514,6 @@ const EmployeeDashboard = () => {
         </div>
       </div>
 
-      {/* GLASSMORPHISM CAMERA MODAL */}
       {isCameraOpen && (
         <div className="modal-overlay">
           <h2 style={{ color: 'white', margin: '0 0 10px 0' }}>Biometric Verification</h2>
@@ -543,7 +527,12 @@ const EmployeeDashboard = () => {
           <video ref={videoRef} autoPlay muted className="modal-video" />
 
           <div className="modal-actions">
-            <button style={{ marginTop: '20px', padding: '12px 30px', fontSize: '1.1rem', backgroundColor: '#3fb950', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }} onClick={verifyFace} disabled={isVerifying}>
+            {/* The Start Scan Button is Back! */}
+            <button 
+              style={{ marginTop: '20px', padding: '12px 30px', fontSize: '1.1rem', backgroundColor: '#3fb950', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }} 
+              onClick={verifyFace} 
+              disabled={isVerifying}
+            >
               {isVerifying ? 'Verifying Data...' : 'Start Scan'}
             </button>
             <button style={{ color: '#8b949e', background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer', textDecoration: 'underline' }} onClick={closeCamera}>Cancel</button>
