@@ -9,17 +9,17 @@ const AdminEmployeeHRCreator = () => {
 
   // Core Data & The 60+ Excel Fields
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', empId: '', title: '', firstName: '', middleName: '', lastName: '', 
-    workEmail: '', gender: '', dateOfBirth: '', maritalStatus: '', marriageDate: '', fatherHusbandName: '', 
-    startDate: '', reportsTo: '', reportsToEffectiveDate: '', jobRole: '', grade: '', jobRoleEffectiveDate: '', 
-    jobRoleReason: '', company: '', companyEffectiveDate: '', location: '', locationEffectiveDate: '', 
-    department: '', departmentEffectiveDate: '', aadharNumber: '', nameAsPerAadhar: '', panNumber: '', 
-    nameAsPerPan: '', nationality: '', employmentType: '', employmentTypeEffectiveDate: '', annualLeaveEntitlement: '', 
-    earnedLeaveBalanceThisYear: '', earnedLeaveAddedNextYear: '', entitlementType: '', currentAddressLine1: '', 
-    currentAddressLine2: '', currentAddressLine3: '', currentState: '', currentCountry: '', currentPostCode: '', 
-    permanentAddressLine1: '', permanentAddressLine2: '', permanentAddressLine3: '', permanentState: '', 
-    permanentCountry: '', permanentPostCode: '', personalPhoneNumber: '', leavingDate: '', leaveReason: '', 
-    probationEndDate: '', noticePeriod: '', workPhone: '', personalEmail: '', mobile: '', nextReviewDate: '', 
+    name: '', email: '', password: '', empId: '', title: '', firstName: '', middleName: '', lastName: '',
+    workEmail: '', gender: '', dateOfBirth: '', maritalStatus: '', marriageDate: '', fatherHusbandName: '',
+    startDate: '', reportsTo: '', reportsToEffectiveDate: '', jobRole: '', grade: '', jobRoleEffectiveDate: '',
+    jobRoleReason: '', company: '', companyEffectiveDate: '', location: '', locationEffectiveDate: '',
+    department: '', departmentEffectiveDate: '', aadharNumber: '', nameAsPerAadhar: '', panNumber: '',
+    nameAsPerPan: '', nationality: '', employmentType: '', employmentTypeEffectiveDate: '', annualLeaveEntitlement: '',
+    earnedLeaveBalanceThisYear: '', earnedLeaveAddedNextYear: '', entitlementType: '', currentAddressLine1: '',
+    currentAddressLine2: '', currentAddressLine3: '', currentState: '', currentCountry: '', currentPostCode: '',
+    permanentAddressLine1: '', permanentAddressLine2: '', permanentAddressLine3: '', permanentState: '',
+    permanentCountry: '', permanentPostCode: '', personalPhoneNumber: '', leavingDate: '', leaveReason: '',
+    probationEndDate: '', noticePeriod: '', workPhone: '', personalEmail: '', mobile: '', nextReviewDate: '',
     fixedTermEndDate: '', biometricId: '', workPatternName: '', effectiveDate: '', currentWeek: ''
   });
 
@@ -111,11 +111,11 @@ const AdminEmployeeHRCreator = () => {
   const handleCreateAccount = async (e) => {
     e.preventDefault();
     setMessage('');
-    
+
     // NOTE: Make sure this URL matches your live Render URL!
-    // If you are testing locally first, change this back to http://localhost:5000/api/...
-    const endpoint = activeTab === 'employee' 
-      ? 'https://erp-backend-421d.onrender.com/api/admin/create-employee' 
+    // If you are testing locally first, change this back to https://erp-backend-421d.onrender.com/api/...
+    const endpoint = activeTab === 'employee'
+      ? 'https://erp-backend-421d.onrender.com/api/admin/create-employee'
       : 'https://erp-backend-421d.onrender.com/api/admin/create-hr';
 
     const payload = { ...formData };
@@ -260,15 +260,29 @@ const AdminEmployeeHRCreator = () => {
 
       <div className="page-wrapper">
         <h2 style={{ color: '#ffffff', marginBottom: '2rem' }}>Account Provisioning Center</h2>
-        
+
         <div className="glass-card">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/modify-employees')}
+            style={{
+              width: '100%', padding: '15px', marginBottom: '2rem',
+              backgroundColor: '#0052CC', color: 'white', border: 'none',
+              borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem',
+              boxShadow: '0 4px 12px rgba(0, 82, 204, 0.4)', transition: 'transform 0.2s'
+            }}
+            onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+            onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+          >
+            View & Modify Existing Employees Directory
+          </button>
           <div className="tab-container">
             <button className={`tab-btn ${activeTab === 'employee' ? 'active' : ''}`} onClick={() => setActiveTab('employee')}>New Employee</button>
             <button className={`tab-btn ${activeTab === 'hr' ? 'active' : ''}`} onClick={() => setActiveTab('hr')}>New HR Admin</button>
           </div>
 
           <form onSubmit={handleCreateAccount}>
-            
+
             {/* CORE REQUIRED FIELDS */}
             <h3 className="section-title">Core Credentials (Required)</h3>
             <div className="grid-form">
@@ -290,7 +304,7 @@ const AdminEmployeeHRCreator = () => {
             {activeTab === 'employee' && (
               <div className="camera-box">
                 <h4 style={{ margin: '0 0 1rem 0', color: '#e6edf3' }}>Biometric Vault Reference *</h4>
-                
+
                 {!isCameraOpen && referenceFaceImages.length === 0 && (
                   <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
                     <button type="button" className="btn-secondary" style={{ background: '#0052CC', border: 'none', color: 'white' }} onClick={openCamera}>Open Web Camera</button>
@@ -312,7 +326,7 @@ const AdminEmployeeHRCreator = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
 
                 {referenceFaceImages.length > 0 && (
@@ -336,7 +350,7 @@ const AdminEmployeeHRCreator = () => {
               <div style={{ marginTop: '2rem' }}>
                 <h3 className="section-title">Extended Employee Profile (Optional)</h3>
                 <p style={{ fontSize: '0.85rem', color: '#8b949e', margin: '0 0 1rem 0' }}>Click sections below to expand and fill out additional ledger data.</p>
-                
+
                 {accordionSections.map((section) => (
                   <div key={section.id} className="accordion-item">
                     <div className="accordion-header" onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}>
@@ -356,7 +370,7 @@ const AdminEmployeeHRCreator = () => {
             <button type="submit" className="btn-primary">
               Provision {activeTab === 'hr' ? 'HR Administrator' : 'Employee'} Access
             </button>
-            
+
             {message && (
               <div style={{ marginTop: '1.5rem', padding: '15px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: messageColor, textAlign: 'center', fontWeight: 'bold' }}>
                 {message}
@@ -365,7 +379,7 @@ const AdminEmployeeHRCreator = () => {
 
           </form>
         </div>
-        
+
         <button className="btn-secondary" style={{ marginTop: '2rem', border: 'none' }} onClick={() => navigate('/admin')}>
           ← Return to Command Center
         </button>

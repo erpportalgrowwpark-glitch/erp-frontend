@@ -3,15 +3,16 @@ import { Routes, Route } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage.jsx";
 import EmployeeLoginPage from "./pages/EmployeeLoginPage.jsx";
-import EmployeeDetailedDaysReport from './pages/EmployeeDetailedDaysReport';
+import EmployeeDetailedDaysReport from './pages/EmployeeDetailedDaysReport.jsx';
 import HRLoginPage from "./pages/HRLoginPage.jsx";
 import AdminLoginPage from "./pages/AdminLoginPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import AdminEmployeeHRCreator from "./pages/AdminEmployeeHRCreator.jsx";
-import EmployeeDashboard from "./pages/EmployeeDashboard.jsx"; // NEW: Imported the dashboard
-import AdminLocationManagement from './pages/AdminLocationManagement';
+import AdminEmployeeModifier from "./pages/AdminEmployeeModifier.jsx"; // NEW: Imported the modifier page
+import EmployeeDashboard from "./pages/EmployeeDashboard.jsx"; 
+import AdminLocationManagement from './pages/AdminLocationManagement.jsx';
 
-// Import our new bouncer directly from the pages folder
+// Import our bouncer directly from the pages folder
 import ProtectedRoute from "./pages/ProtectedRoute.jsx"; 
 
 function App() {
@@ -22,13 +23,11 @@ function App() {
       <Route path="/employee/detailed-report" element={<EmployeeDetailedDaysReport />} />
       <Route path="/hr-login" element={<HRLoginPage />} />
 
-
       {/* Admin Login remains public so people can actually log in */}
       <Route path="/admin-login" element={<AdminLoginPage />} />
       <Route path="/admin/location-management" element={<AdminLocationManagement />} />
       
-      {/* These routes are now WRAPPED in the ProtectedRoute. 
-          If you try to bypass the login by typing /admin in the URL, it kicks you out. */}
+      {/* Protected Admin Routes */}
       <Route 
         path="/admin" 
         element={
@@ -45,8 +44,17 @@ function App() {
           </ProtectedRoute>
         } 
       />
+      
+      {/* NEW: Protected route for modifying and deleting employees */}
+      <Route 
+        path="/admin/modify-employees" 
+        element={
+          <ProtectedRoute>
+            <AdminEmployeeModifier />
+          </ProtectedRoute>
+        } 
+      />
 
-      {/* NEW: Added the Employee Dashboard route wrapped in ProtectedRoute */}
       <Route 
         path="/employee-dashboard" 
         element={

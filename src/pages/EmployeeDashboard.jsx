@@ -20,7 +20,7 @@ const EmployeeDashboard = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  
+
   // State to hold the pre-calculated face data
   const [referenceDescriptors, setReferenceDescriptors] = useState([]);
   const [isBiometricsReady, setIsBiometricsReady] = useState(false);
@@ -67,7 +67,7 @@ const EmployeeDashboard = () => {
         console.error("Failed to load AI Models", err);
       }
     };
-    
+
     loadModelsAndPrecompute();
   }, [navigate]);
 
@@ -79,7 +79,7 @@ const EmployeeDashboard = () => {
 
       if (!data.referenceFaceImages || data.referenceFaceImages.length === 0) {
         console.warn("No reference images found in DB.");
-        setIsBiometricsReady(true); 
+        setIsBiometricsReady(true);
         return;
       }
 
@@ -88,18 +88,18 @@ const EmployeeDashboard = () => {
 
       for (let i = 0; i < data.referenceFaceImages.length; i++) {
         const refImg = new Image();
-        refImg.crossOrigin = 'anonymous'; 
+        refImg.crossOrigin = 'anonymous';
         refImg.src = data.referenceFaceImages[i];
-        
-        await new Promise((resolve) => { 
+
+        await new Promise((resolve) => {
           refImg.onload = resolve;
-          refImg.onerror = resolve; 
+          refImg.onerror = resolve;
         });
 
         const refDetection = await faceapi.detectSingleFace(refImg, detectorOptions)
           .withFaceLandmarks()
           .withFaceDescriptor();
-          
+
         if (refDetection) {
           descriptors.push(refDetection.descriptor);
         }
@@ -529,20 +529,20 @@ const EmployeeDashboard = () => {
 
           <div className="modal-actions">
             {/* The Start Scan button now shows loading states dynamically */}
-            <button 
-              style={{ 
-                marginTop: '20px', 
-                padding: '12px 30px', 
-                fontSize: '1.1rem', 
-                backgroundColor: isScanDisabled ? '#8b949e' : '#3fb950', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                cursor: isScanDisabled ? 'not-allowed' : 'pointer', 
+            <button
+              style={{
+                marginTop: '20px',
+                padding: '12px 30px',
+                fontSize: '1.1rem',
+                backgroundColor: isScanDisabled ? '#8b949e' : '#3fb950',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: isScanDisabled ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold',
                 transition: 'background-color 0.3s'
-              }} 
-              onClick={verifyFace} 
+              }}
+              onClick={verifyFace}
               disabled={isScanDisabled}
             >
               {scanButtonText}
