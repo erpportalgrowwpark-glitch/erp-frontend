@@ -12,6 +12,7 @@ const AdminPage = () => {
     btnContainer: { display: 'flex', flexDirection: 'column', gap: '15px' },
     actionBtn: { padding: '15px', fontSize: '1.1rem', cursor: 'pointer', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', width: '100%', transition: '0.2s', fontFamily: 'inherit' },
     locationBtn: { padding: '15px', fontSize: '1.1rem', cursor: 'pointer', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', width: '100%', transition: '0.2s', fontFamily: 'inherit' },
+    gridBtn: { padding: '15px', fontSize: '1.1rem', cursor: 'pointer', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', width: '100%', transition: '0.2s', fontFamily: 'inherit' },
     backButton: { marginTop: '2rem', cursor: 'pointer', color: '#6c757d', textDecoration: 'underline', border: 'none', background: 'none', fontSize: '1rem', fontFamily: 'inherit' }
   };
 
@@ -29,7 +30,14 @@ const AdminPage = () => {
             Manage User Accounts
           </button>
 
-          {/* NEW: Button to route to Location Management */}
+          {/* NEW: Button to route to the Company Attendance Grid */}
+          <button 
+            style={styles.gridBtn} 
+            onClick={() => navigate('/admin/attendance-overview')}
+          >
+            Company Attendance Grid
+          </button>
+
           <button 
             style={styles.locationBtn} 
             onClick={() => navigate('/admin/location-management')}

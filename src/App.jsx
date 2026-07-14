@@ -9,7 +9,8 @@ import AdminLoginPage from "./pages/AdminLoginPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import AdminEmployeeHRCreator from "./pages/AdminEmployeeHRCreator.jsx";
 import AdminEmployeeModifier from "./pages/AdminEmployeeModifier.jsx"; // NEW: Imported the modifier page
-import EmployeeDashboard from "./pages/EmployeeDashboard.jsx"; 
+import EmployeeDashboard from "./pages/EmployeeDashboard.jsx";
+import AdminEmployeeAttendanceManagement from "./pages/AdminEmployeeAttendanceManagement.jsx"; 
 import AdminLocationManagement from './pages/AdminLocationManagement.jsx';
 
 // Import our bouncer directly from the pages folder
@@ -51,6 +52,15 @@ function App() {
         element={
           <ProtectedRoute>
             <AdminEmployeeModifier />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/admin/attendance-overview" 
+        element={
+          <ProtectedRoute>
+            <AdminEmployeeAttendanceManagement />
           </ProtectedRoute>
         } 
       />
