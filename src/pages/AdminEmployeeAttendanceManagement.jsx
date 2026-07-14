@@ -5,21 +5,18 @@ import { useNavigate } from 'react-router-dom';
 const AdminEmployeeAttendanceManagement = () => {
     const navigate = useNavigate();
 
-    // Start with current month (YYYY-MM)
     const currentMonth = new Date().toISOString().substring(0, 7);
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [overviewData, setOverviewData] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Inline Editing State
-    const [editingCell, setEditingCell] = useState(null); // stores record.id
+    const [editingCell, setEditingCell] = useState(null);
     const [editFormData, setEditFormData] = useState({ in: '', out: '' });
 
     useEffect(() => {
-        fetchOverview(selectedMonth); // Normal fetch with loading screen
+        fetchOverview(selectedMonth);
     }, [selectedMonth]);
 
-    // "isSilent" parameter skips the loading screen to prevent scroll jumping
     const fetchOverview = async (month, isSilent = false) => {
         if (!isSilent) setLoading(true);
         try {
@@ -44,7 +41,6 @@ const AdminEmployeeAttendanceManagement = () => {
         });
     }, [selectedMonth]);
 
-    // Extracts "HH:MM" string for our custom component
     const extractTimeForInput = (isoString) => {
         if (!isoString) return '';
         const d = new Date(isoString);
@@ -63,7 +59,6 @@ const AdminEmployeeAttendanceManagement = () => {
         return `${dayName} ${dateNum}`;
     };
 
-    // --- CRUD ACTIONS ---
     const initiateEdit = (session) => {
         setEditingCell(session.id);
         setEditFormData({
@@ -72,20 +67,25 @@ const AdminEmployeeAttendanceManagement = () => {
         });
     };
 
-    const handleUpdate = async (recordId) => {
+    // THE FIX: We now accept the dateStr and construct the timezone-safe ISO string
+    const handleUpdate = async (recordId, dateStr) => {
         try {
+            // Create full Date objects on the client side (respecting local timezone)
+            const localInTime = editFormData.in ? new Date(`${dateStr}T${editFormData.in}:00`).toISOString() : null;
+            const localOutTime = editFormData.out ? new Date(`${dateStr}T${editFormData.out}:00`).toISOString() : null;
+
             const res = await fetch(`https://erp-backend-421d.onrender.com/api/attendance/admin/record/${recordId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    newInTime: editFormData.in,
-                    newOutTime: editFormData.out
+                    newInTime: localInTime,
+                    newOutTime: localOutTime
                 })
             });
 
             if (res.ok) {
                 setEditingCell(null);
-                fetchOverview(selectedMonth, true); // Silent background refresh
+                fetchOverview(selectedMonth, true);
             } else {
                 alert("Failed to update record.");
             }
@@ -101,7 +101,7 @@ const AdminEmployeeAttendanceManagement = () => {
                 method: 'DELETE'
             });
             if (res.ok) {
-                fetchOverview(selectedMonth, true); // Silent background refresh
+                fetchOverview(selectedMonth, true);
             } else {
                 alert("Failed to delete record.");
             }
@@ -110,7 +110,6 @@ const AdminEmployeeAttendanceManagement = () => {
         }
     };
 
-    // --- CUSTOM STRICT TIME PICKER COMPONENT ---
     const renderTimePicker = (time24, fieldKey) => {
         if (!time24) {
             return (
@@ -118,7 +117,6 @@ const AdminEmployeeAttendanceManagement = () => {
                     type="button"
                     className="btn-add-time"
                     onClick={() => {
-                        // Default injected times: 9:00 AM for IN, 5:00 PM (17:00) for OUT
                         if (fieldKey === 'in') setEditFormData({ ...editFormData, in: '09:00' });
                         else setEditFormData({ ...editFormData, out: '17:00' });
                     }}
@@ -128,14 +126,12 @@ const AdminEmployeeAttendanceManagement = () => {
             );
         }
 
-        // Parse the 24hr string ("HH:MM") into 12hr parts for the UI dropdowns
         let [h, m] = time24.split(':');
         let hInt = parseInt(h, 10);
         let ap = hInt >= 12 ? 'PM' : 'AM';
         let h12 = hInt % 12 || 12;
         let hStr = String(h12).padStart(2, '0');
 
-        // When admin changes a dropdown, rebuild the 24hr string for the backend
         const updateTime = (newH, newM, newAp) => {
             let h24 = parseInt(newH, 10);
             if (newAp === 'PM' && h24 !== 12) h24 += 12;
@@ -294,7 +290,7 @@ const AdminEmployeeAttendanceManagement = () => {
                                                                             <span className="time-label">Out:</span>
                                                                             {renderTimePicker(editFormData.out, 'out')}
                                                                         </div>
-                                                                        <button className="btn-apply" onClick={() => handleUpdate(session.id)}>Apply Update</button>
+                                                                        <button className="btn-apply" onClick={() => handleUpdate(session.id, dateStr)}>Apply Update</button>
                                                                         <button className="btn-cancel" onClick={() => setEditingCell(null)}>Cancel</button>
                                                                     </div>
                                                                 );
