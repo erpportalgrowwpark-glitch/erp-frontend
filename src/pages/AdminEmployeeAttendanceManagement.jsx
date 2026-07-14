@@ -19,7 +19,7 @@ const AdminEmployeeAttendanceManagement = () => {
         fetchOverview(selectedMonth); // Normal fetch with loading screen
     }, [selectedMonth]);
 
-    // THE FIX: Added "isSilent" parameter. If true, it skips the loading screen.
+    // "isSilent" parameter skips the loading screen to prevent scroll jumping
     const fetchOverview = async (month, isSilent = false) => {
         if (!isSilent) setLoading(true);
         try {
@@ -44,6 +44,7 @@ const AdminEmployeeAttendanceManagement = () => {
         });
     }, [selectedMonth]);
 
+    // Extracts "HH:MM" string for our custom component
     const extractTimeForInput = (isoString) => {
         if (!isoString) return '';
         const d = new Date(isoString);
@@ -63,7 +64,6 @@ const AdminEmployeeAttendanceManagement = () => {
     };
 
     // --- CRUD ACTIONS ---
-
     const initiateEdit = (session) => {
         setEditingCell(session.id);
         setEditFormData({
@@ -85,8 +85,7 @@ const AdminEmployeeAttendanceManagement = () => {
 
             if (res.ok) {
                 setEditingCell(null);
-                // THE FIX: Pass true for a silent background refresh so the scroll stays put
-                fetchOverview(selectedMonth, true);
+                fetchOverview(selectedMonth, true); // Silent background refresh
             } else {
                 alert("Failed to update record.");
             }
@@ -97,21 +96,72 @@ const AdminEmployeeAttendanceManagement = () => {
 
     const handleDelete = async (recordId) => {
         if (!window.confirm("Are you sure you want to completely delete this attendance log?")) return;
-
         try {
             const res = await fetch(`https://erp-backend-421d.onrender.com/api/attendance/admin/record/${recordId}`, {
                 method: 'DELETE'
             });
-
             if (res.ok) {
-                // THE FIX: Pass true for a silent background refresh
-                fetchOverview(selectedMonth, true);
+                fetchOverview(selectedMonth, true); // Silent background refresh
             } else {
                 alert("Failed to delete record.");
             }
         } catch (error) {
             console.error("Error deleting record:", error);
         }
+    };
+
+    // --- CUSTOM STRICT TIME PICKER COMPONENT ---
+    const renderTimePicker = (time24, fieldKey) => {
+        if (!time24) {
+            return (
+                <button
+                    type="button"
+                    className="btn-add-time"
+                    onClick={() => {
+                        // Default injected times: 9:00 AM for IN, 5:00 PM (17:00) for OUT
+                        if (fieldKey === 'in') setEditFormData({ ...editFormData, in: '09:00' });
+                        else setEditFormData({ ...editFormData, out: '17:00' });
+                    }}
+                >
+                    + Add Time
+                </button>
+            );
+        }
+
+        // Parse the 24hr string ("HH:MM") into 12hr parts for the UI dropdowns
+        let [h, m] = time24.split(':');
+        let hInt = parseInt(h, 10);
+        let ap = hInt >= 12 ? 'PM' : 'AM';
+        let h12 = hInt % 12 || 12;
+        let hStr = String(h12).padStart(2, '0');
+
+        // When admin changes a dropdown, rebuild the 24hr string for the backend
+        const updateTime = (newH, newM, newAp) => {
+            let h24 = parseInt(newH, 10);
+            if (newAp === 'PM' && h24 !== 12) h24 += 12;
+            if (newAp === 'AM' && h24 === 12) h24 = 0;
+            const final24 = `${String(h24).padStart(2, '0')}:${newM}`;
+            setEditFormData({ ...editFormData, [fieldKey]: final24 });
+        };
+
+        return (
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <select value={hStr} onChange={e => updateTime(e.target.value, m, ap)} className="edit-select">
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(hour => <option key={hour} value={hour}>{hour}</option>)}
+                </select>
+                <span style={{ color: 'white', fontWeight: 'bold' }}>:</span>
+                <select value={m} onChange={e => updateTime(hStr, e.target.value, ap)} className="edit-select">
+                    {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(minute => <option key={minute} value={minute}>{minute}</option>)}
+                </select>
+                <select value={ap} onChange={e => updateTime(hStr, m, e.target.value)} className="edit-select">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
+                {fieldKey === 'out' && (
+                    <button type="button" onClick={() => setEditFormData({ ...editFormData, out: '' })} className="btn-clear-time" title="Clear Out Time">×</button>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -136,12 +186,12 @@ const AdminEmployeeAttendanceManagement = () => {
           
           /* Table Headers */
           .attendance-table th { background: #161b22; color: #e6edf3; padding: 12px 10px; font-weight: 600; border-bottom: 2px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.05); white-space: nowrap; text-align: center; position: sticky; top: 0; z-index: 5; }
-          .attendance-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); min-width: 140px; vertical-align: top; }
+          .attendance-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); min-width: 150px; vertical-align: top; }
           .attendance-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
 
           /* Sticky First Column */
           .attendance-table th:first-child, .attendance-table td:first-child { position: sticky; left: 0; background: #161b22; z-index: 10; font-weight: bold; font-size: 0.95rem; color: #58a6ff; min-width: 180px; text-align: left; border-right: 2px solid rgba(255,255,255,0.1); }
-          .attendance-table th:first-child { z-index: 15; } /* Corner cell above both sticky layers */
+          .attendance-table th:first-child { z-index: 15; } 
           .attendance-table tbody tr:hover td:first-child { background: #21262d; }
           
           /* Cell Content Styling & Hover Interactions */
@@ -162,10 +212,17 @@ const AdminEmployeeAttendanceManagement = () => {
           .icon-btn.delete:hover { background: rgba(248, 81, 73, 0.2); }
 
           /* Active Editing Mode Form */
-          .edit-form { display: flex; flex-direction: column; gap: 6px; background: #1c2128; padding: 8px; border-radius: 6px; border: 1px solid #58a6ff; }
-          .edit-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 4px; border-radius: 4px; font-size: 0.8rem; font-family: inherit; box-sizing: border-box; }
-          .edit-input:focus { outline: none; border-color: #58a6ff; }
-          .btn-apply { background: #3fb950; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; width: 100%; }
+          .edit-form { display: flex; flex-direction: column; gap: 8px; background: #1c2128; padding: 8px; border-radius: 6px; border: 1px solid #58a6ff; }
+          
+          /* CUSTOM STRICT TIME CONTROLS */
+          .edit-select { background: rgba(0,0,0,0.6); border: 1px solid rgba(88, 166, 255, 0.4); color: white; border-radius: 4px; padding: 4px 2px; font-size: 0.75rem; outline: none; cursor: pointer; text-align: center; }
+          .edit-select:focus { border-color: #58a6ff; }
+          .btn-add-time { background: rgba(88, 166, 255, 0.15); border: 1px dashed rgba(88, 166, 255, 0.5); color: #58a6ff; font-size: 0.75rem; border-radius: 4px; cursor: pointer; padding: 4px 6px; width: 100%; transition: all 0.2s; }
+          .btn-add-time:hover { background: rgba(88, 166, 255, 0.3); }
+          .btn-clear-time { background: transparent; border: none; color: #f85149; cursor: pointer; font-size: 1.1rem; font-weight: bold; padding: 0 4px; }
+          .btn-clear-time:hover { color: #ff7b72; }
+
+          .btn-apply { background: #3fb950; color: white; border: none; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; width: 100%; margin-top: 4px; }
           .btn-cancel { background: transparent; color: #8b949e; border: none; font-size: 0.75rem; cursor: pointer; width: 100%; padding: 4px 0; }
 
           @media (max-width: 768px) {
@@ -231,23 +288,13 @@ const AdminEmployeeAttendanceManagement = () => {
                                                                     <div key={idx} className="edit-form">
                                                                         <div className="time-row">
                                                                             <span className="time-label">In:</span>
-                                                                            <input
-                                                                                type="time"
-                                                                                className="edit-input"
-                                                                                value={editFormData.in}
-                                                                                onChange={(e) => setEditFormData({ ...editFormData, in: e.target.value })}
-                                                                            />
+                                                                            {renderTimePicker(editFormData.in, 'in')}
                                                                         </div>
                                                                         <div className="time-row">
                                                                             <span className="time-label">Out:</span>
-                                                                            <input
-                                                                                type="time"
-                                                                                className="edit-input"
-                                                                                value={editFormData.out}
-                                                                                onChange={(e) => setEditFormData({ ...editFormData, out: e.target.value })}
-                                                                            />
+                                                                            {renderTimePicker(editFormData.out, 'out')}
                                                                         </div>
-                                                                        <button className="btn-apply" onClick={() => handleUpdate(session.id)}>Apply</button>
+                                                                        <button className="btn-apply" onClick={() => handleUpdate(session.id)}>Apply Update</button>
                                                                         <button className="btn-cancel" onClick={() => setEditingCell(null)}>Cancel</button>
                                                                     </div>
                                                                 );
